@@ -63,7 +63,7 @@ GEN-JSON files are structured hierarchically with the following sections:
 Run a JSON Schema validator:
 ```sh
 npm install ajv-cli -g
-ajv validate -s schemas/genjson-schema.json -d my-family-tree.json
+ajv validate -s schemas/gen-json-schema.json -d my-family-tree.json
 ```
 
 ### ✅ **Converting from GEDCOM to GEN-JSON**
