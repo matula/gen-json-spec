@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "individuals": {
+    "I1": {
+      "full_name": "Alice Johnson",
+      "sex": "F",
+      "birth": {
+        "date": "1920-06-15",
+        "place": "Chicago, USA"
+      },
+      "death": {
+        "date": "1999-08-20",
+        "place": "New York, USA"
+      },
+      "parents": ["I3", "I4"],
+      "spouses": ["I2"],
+      "children": ["I5", "I6"]
+    },
+    "I2": {
+      "full_name": "Robert Smith",
+      "sex": "M",
+      "birth": {
+        "date": "1918-02-10",
+        "place": "Los Angeles, USA"
+      },
+      "death": {
+        "date": "1985-07-05",
+        "place": "San Francisco, USA"
+      },
+      "spouses": ["I1"],
+      "children": ["I5", "I6"]
+    }
+  },
+  "families": {
+    "F1": {
+      "husband": "I2",
+      "wife": "I1",
+      "marriage": {
+        "date": "1940-09-30",
+        "place": "Chicago, USA"
+      },
+      "children": ["I5", "I6"]
+    }
+  },
+  "sources": {
+    "S1": {
+      "title": "Marriage Certificate of Alice Johnson and Robert Smith",
+      "url": "https://example.com/marriage-record"
+    }
+  },
+  "media": {
+    "M1": {
+      "type": "photo",
+      "url": "https://example.com/photo1.jpg",
+      "description": "Wedding photo of Alice and Robert"
+    }
+  }
+}

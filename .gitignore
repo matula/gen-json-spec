@@ -1,0 +1,64 @@
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files/folde rs
+.Spotlight-V100
+.Trashes
+.TemporaryItems
+.fseventsd
+.DocumentRevisions-V100
+.com.apple.timemachine.donotpresent
+
+# Network
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+
+# Directories
+.apdisk
+.VolumeIcon.icns
+
+
+### JetBrains ###
+# Project
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Workspace
+*.ids
+*.orig
+
+# Caches/databases
+*.idea_modules/
+*.idea/workspace.xml
+*.idea/tasks.xml
+*.idea/datasources.xml
+*.idea/dataSources.ids
+*.idea/shelf/
+
+# Swaps
+*.swp
+*.swn
+*.swo
+
+
+### General ###
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+[Tt]humbs.db
+
+# Backup files
+*~
+~$*
+*.bak
+*.tmp

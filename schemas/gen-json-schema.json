@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GEN-JSON Schema",
+  "description": "Schema validation for GEN-JSON genealogy format.",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string" },
+    "individuals": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "full_name": { "type": "string" },
+          "sex": { "type": "string", "enum": ["M", "F", "U"] },
+          "birth": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "place": { "type": "string" }
+            }
+          },
+          "death": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "place": { "type": "string" }
+            }
+          },
+          "parents": { "type": "array", "items": { "type": "string" } },
+          "spouses": { "type": "array", "items": { "type": "string" } },
+          "children": { "type": "array", "items": { "type": "string" } },
+          "sources": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "families": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "husband": { "type": "string" },
+          "wife": { "type": "string" },
+          "marriage": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "place": { "type": "string" }
+            }
+          },
+          "children": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "required": ["version", "individuals"]
+}
