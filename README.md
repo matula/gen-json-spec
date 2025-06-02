@@ -81,7 +81,6 @@ python tools/gedcom-to-genjson.py input.ged output.json
 GEN-JSON is released under the **MIT License**. See [LICENSE](LICENSE) for details.
 
 ## 🌎 Community & Support
-📧 Email: support@example.com  
 📢 Discussions: [GitHub Issues](https://github.com/matula/gen-json-spec/issues)  
 📖 Wiki: [GEN-JSON Wiki](https://github.com/matula/gen-json-spec/wiki)
 
