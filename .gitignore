@@ -62,3 +62,42 @@ ehthumbs.db
 ~$*
 *.bak
 *.tmp
+
+
+### AI Generated Files ###
+# Claude Code / Cursor / Copilot
+.claude/
+.cursor/
+.copilot/
+.aichat/
+CLAUDE.md
+AGENTS.md
+
+# AI conversation logs
+*.ai.log
+*.claude.log
+*.cursor.log
+*-conversation.json
+
+# AI generated drafts/scratchpads
+ai-scratch/
+.ai-workspace/
+_ai_generated/
+
+# Prompt files (if you want to keep these, remove this section)
+# .prompts/
+# prompts.md
+
+# LLM output caches
+.llm-cache/
+.ai-cache/
+
+# Common AI IDE extensions
+.continue/
+.codeium/
+.tabnine/
+.supermaven/
+
+# AI code review artifacts
+ai-review-*.md
+code-review-ai.json

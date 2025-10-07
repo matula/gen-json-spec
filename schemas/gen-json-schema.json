@@ -1,35 +1,152 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEN-JSON Schema",
-  "description": "Schema validation for GEN-JSON genealogy format.",
+  "title": "GEN-JSON Schema v2.0",
+  "description": "Schema validation for GEN-JSON v2.0 genealogy format with AI/LLM optimization",
   "type": "object",
   "properties": {
-    "version": { "type": "string" },
+    "version": {
+      "type": "string",
+      "enum": ["1.0", "2.0"]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created": { "type": "string", "format": "date-time" },
+        "modified": { "type": "string", "format": "date-time" },
+        "creator": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "software": { "type": "string" }
+          }
+        },
+        "description": { "type": "string" },
+        "language": { "type": "string" },
+        "copyright": { "type": "string" },
+        "change_log": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "format": "date-time" },
+              "author": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": ["date", "description"]
+          }
+        }
+      }
+    },
     "individuals": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "given_name": { "type": "string" },
+              "surname": { "type": "string" },
+              "prefix": { "type": "string" },
+              "suffix": { "type": "string" },
+              "nickname": { "type": "string" },
+              "name_type": { "type": "string", "enum": ["legal", "birth", "married", "aka"] },
+              "full_name": { "type": "string" }
+            }
+          },
           "full_name": { "type": "string" },
-          "sex": { "type": "string", "enum": ["M", "F", "U"] },
+          "alternate_names": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "given_name": { "type": "string" },
+                "surname": { "type": "string" },
+                "prefix": { "type": "string" },
+                "suffix": { "type": "string" },
+                "name_type": { "type": "string" },
+                "full_name": { "type": "string" }
+              }
+            }
+          },
+          "sex": { "type": "string", "enum": ["M", "F", "U", "X"] },
+          "gender": {
+            "type": "object",
+            "properties": {
+              "identity": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          },
+          "events": { "type": "array", "items": { "type": "string" } },
           "birth": {
             "type": "object",
             "properties": {
-              "date": { "type": "string", "format": "date" },
-              "place": { "type": "string" }
+              "date": { "type": "string" },
+              "place": { "type": "string" },
+              "sources": { "type": "array", "items": { "type": "string" } }
             }
           },
           "death": {
             "type": "object",
             "properties": {
-              "date": { "type": "string", "format": "date" },
-              "place": { "type": "string" }
+              "date": { "type": "string" },
+              "place": { "type": "string" },
+              "sources": { "type": "array", "items": { "type": "string" } }
             }
           },
-          "parents": { "type": "array", "items": { "type": "string" } },
-          "spouses": { "type": "array", "items": { "type": "string" } },
-          "children": { "type": "array", "items": { "type": "string" } },
-          "sources": { "type": "array", "items": { "type": "string" } }
+          "parents": {
+            "anyOf": [
+              { "type": "array", "items": { "type": "string" } },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "individual_id": { "type": "string" },
+                    "relationship_type": { "type": "string", "enum": ["biological", "adoptive", "step", "foster", "guardian"] },
+                    "parent_type": { "type": "string", "enum": ["father", "mother", "parent"] }
+                  },
+                  "required": ["individual_id"]
+                }
+              }
+            ]
+          },
+          "spouses": {
+            "anyOf": [
+              { "type": "array", "items": { "type": "string" } },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "individual_id": { "type": "string" },
+                    "family_id": { "type": "string" }
+                  },
+                  "required": ["individual_id"]
+                }
+              }
+            ]
+          },
+          "children": {
+            "anyOf": [
+              { "type": "array", "items": { "type": "string" } },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "individual_id": { "type": "string" },
+                    "relationship_type": { "type": "string", "enum": ["biological", "adoptive", "step", "foster"] }
+                  },
+                  "required": ["individual_id"]
+                }
+              }
+            ]
+          },
+          "confidence_level": { "type": "string", "enum": ["high", "medium", "low", "unknown"] },
+          "sources": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
@@ -40,15 +157,226 @@
         "properties": {
           "husband": { "type": "string" },
           "wife": { "type": "string" },
+          "partners": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "individual_id": { "type": "string" },
+                "role": { "type": "string", "enum": ["spouse", "partner"] }
+              },
+              "required": ["individual_id"]
+            }
+          },
           "marriage": {
             "type": "object",
             "properties": {
-              "date": { "type": "string", "format": "date" },
+              "date": { "type": "string" },
+              "place": { "type": "string" },
+              "sources": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "children": {
+            "anyOf": [
+              { "type": "array", "items": { "type": "string" } },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "individual_id": { "type": "string" },
+                    "relationship_type": { "type": "string" }
+                  },
+                  "required": ["individual_id"]
+                }
+              }
+            ]
+          },
+          "family_type": { "type": "string", "enum": ["nuclear", "extended", "blended", "adoptive", "foster"] },
+          "events": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "birth", "death", "baptism", "christening", "burial", "cremation",
+              "marriage", "divorce", "engagement", "marriage_banns",
+              "adoption", "bar_mitzvah", "bat_mitzvah", "confirmation", "first_communion",
+              "immigration", "emigration", "naturalization",
+              "census", "residence", "occupation", "retirement", "military_service",
+              "education", "graduation", "probate", "will", "custom"
+            ]
+          },
+          "individual_id": { "type": "string" },
+          "family_id": { "type": "string" },
+          "participants": { "type": "array", "items": { "type": "string" } },
+          "date": {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string" },
+              "date_type": {
+                "type": "string",
+                "enum": ["exact", "approximate", "before", "after", "between", "from", "to", "calculated"]
+              },
+              "original": { "type": "string" },
+              "circa": { "type": "boolean" },
+              "end_date": { "type": "string" }
+            },
+            "required": ["value"]
+          },
+          "place": {
+            "anyOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "properties": {
+                  "place_id": { "type": "string" },
+                  "original": { "type": "string" }
+                }
+              }
+            ]
+          },
+          "details": { "type": "object" },
+          "confidence_level": { "type": "string", "enum": ["high", "medium", "low", "unknown"] },
+          "sources": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["type"]
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "type": { "type": "string" },
+          "author": { "type": "string" },
+          "publication": {
+            "type": "object",
+            "properties": {
+              "publisher": { "type": "string" },
+              "year": { "type": "integer" },
               "place": { "type": "string" }
             }
           },
-          "children": { "type": "array", "items": { "type": "string" } }
+          "date": { "type": "string" },
+          "repository_id": { "type": "string" },
+          "citation": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "access_date": { "type": "string", "format": "date" },
+          "description": { "type": "string" },
+          "quality": { "type": "string", "enum": ["primary", "secondary", "tertiary"] },
+          "confidence_level": { "type": "string", "enum": ["high", "medium", "low", "unknown"] },
+          "media": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "array", "items": { "type": "string" } }
         }
+      }
+    },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "address": {
+            "type": "object",
+            "properties": {
+              "street": { "type": "string" },
+              "city": { "type": "string" },
+              "state": { "type": "string" },
+              "country": { "type": "string" },
+              "postal_code": { "type": "string" }
+            }
+          },
+          "website": { "type": "string", "format": "uri" },
+          "contact": { "type": "string" }
+        }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["photo", "document", "audio", "video", "headstone", "newspaper_clipping"] },
+          "format": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "file_path": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "date": { "type": "string" },
+          "photographer": { "type": "string" },
+          "individuals": { "type": "array", "items": { "type": "string" } },
+          "events": { "type": "array", "items": { "type": "string" } },
+          "source_id": { "type": "string" },
+          "repository_id": { "type": "string" },
+          "copyright": { "type": "string" },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "places": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "components": {
+            "type": "object",
+            "properties": {
+              "locality": { "type": "string" },
+              "county": { "type": "string" },
+              "state": { "type": "string" },
+              "country": { "type": "string" },
+              "country_code": { "type": "string" }
+            }
+          },
+          "coordinates": {
+            "type": "object",
+            "properties": {
+              "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+              "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+            },
+            "required": ["latitude", "longitude"]
+          },
+          "historical_names": { "type": "array", "items": { "type": "string" } },
+          "time_period": { "type": "string" }
+        }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "author": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" },
+          "type": {
+            "type": "string",
+            "enum": ["research_note", "conflict_note", "todo", "hypothesis", "source_note", "transcription"]
+          },
+          "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+          "related_to": {
+            "type": "object",
+            "properties": {
+              "individuals": { "type": "array", "items": { "type": "string" } },
+              "families": { "type": "array", "items": { "type": "string" } },
+              "events": { "type": "array", "items": { "type": "string" } },
+              "sources": { "type": "array", "items": { "type": "string" } },
+              "media": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "required": ["text"]
       }
     }
   },

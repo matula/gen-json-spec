@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Family Tree Viewer</h1>
+    </header>
+
+    <div class="container">
+        <div class="file-upload-section">
+            <h2>Load Your Family Tree</h2>
+            <p>Upload a gen-json file to view your family tree</p>
+            <input type="file" id="jsonFileInput" accept=".json">
+            <button id="loadExampleBtn">Load Example</button>
+        </div>
+
+        <div class="main-content">
+            <div class="tree-view-container">
+                <h2>Family Tree</h2>
+                <div id="familyTree"></div>
+            </div>
+
+            <div class="person-details-container">
+                <h2>Person Details</h2>
+                <div id="personDetails">
+                    <p class="select-person-message">Select a person from the tree to view their details</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Family Tree Viewer - Based on gen-json format</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

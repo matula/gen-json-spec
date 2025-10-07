@@ -1,0 +1,666 @@
+{
+  "version": "2.0",
+  "metadata": {
+    "created": "2025-01-15T10:30:00Z",
+    "modified": "2025-01-20T14:45:00Z",
+    "creator": {
+      "name": "Jane Researcher",
+      "email": "jane@example.com",
+      "software": "GEN-JSON Editor v2.0"
+    },
+    "description": "Comprehensive example demonstrating GEN-JSON v2.0 features including structured names, events, places, and data quality tracking",
+    "language": "en-US",
+    "copyright": "CC-BY-4.0",
+    "change_log": [
+      {
+        "date": "2025-01-20T14:45:00Z",
+        "author": "Jane Researcher",
+        "description": "Added immigration and occupation events for John Doe"
+      },
+      {
+        "date": "2025-01-18T09:00:00Z",
+        "author": "Jane Researcher",
+        "description": "Initial data entry from family records and census"
+      }
+    ]
+  },
+  "individuals": {
+    "I1": {
+      "name": {
+        "given_name": "John",
+        "surname": "Doe",
+        "suffix": "Jr.",
+        "nickname": "Johnny",
+        "name_type": "legal",
+        "full_name": "John Doe Jr."
+      },
+      "alternate_names": [
+        {
+          "given_name": "Johann",
+          "surname": "Doe",
+          "name_type": "birth",
+          "full_name": "Johann Doe"
+        }
+      ],
+      "sex": "M",
+      "gender": {
+        "identity": "male"
+      },
+      "events": ["E1", "E2", "E4", "E5", "E6", "E7"],
+      "parents": [
+        {
+          "individual_id": "I3",
+          "relationship_type": "biological",
+          "parent_type": "father"
+        },
+        {
+          "individual_id": "I4",
+          "relationship_type": "biological",
+          "parent_type": "mother"
+        }
+      ],
+      "spouses": [
+        {
+          "individual_id": "I2",
+          "family_id": "F1"
+        }
+      ],
+      "children": [
+        {
+          "individual_id": "I5",
+          "relationship_type": "biological"
+        }
+      ],
+      "confidence_level": "high",
+      "sources": ["S1", "S2", "S3"],
+      "notes": ["N1", "N2"]
+    },
+    "I2": {
+      "name": {
+        "given_name": "Jane",
+        "surname": "Doe",
+        "name_type": "married",
+        "full_name": "Jane Doe"
+      },
+      "alternate_names": [
+        {
+          "given_name": "Jane",
+          "surname": "Smith",
+          "name_type": "birth",
+          "full_name": "Jane Smith"
+        }
+      ],
+      "sex": "F",
+      "events": ["E8", "E9"],
+      "spouses": [
+        {
+          "individual_id": "I1",
+          "family_id": "F1"
+        }
+      ],
+      "children": [
+        {
+          "individual_id": "I5",
+          "relationship_type": "biological"
+        }
+      ],
+      "confidence_level": "high",
+      "sources": ["S4"]
+    },
+    "I3": {
+      "name": {
+        "given_name": "William",
+        "surname": "Doe",
+        "name_type": "legal",
+        "full_name": "William Doe"
+      },
+      "sex": "M",
+      "events": ["E10", "E11"],
+      "children": [
+        {
+          "individual_id": "I1",
+          "relationship_type": "biological"
+        }
+      ],
+      "confidence_level": "medium",
+      "sources": ["S3"]
+    },
+    "I4": {
+      "name": {
+        "given_name": "Mary",
+        "surname": "Doe",
+        "name_type": "married",
+        "full_name": "Mary Doe"
+      },
+      "alternate_names": [
+        {
+          "given_name": "Mary",
+          "surname": "Johnson",
+          "name_type": "birth"
+        }
+      ],
+      "sex": "F",
+      "events": ["E12"],
+      "children": [
+        {
+          "individual_id": "I1",
+          "relationship_type": "biological"
+        }
+      ],
+      "confidence_level": "medium"
+    },
+    "I5": {
+      "name": {
+        "given_name": "Robert",
+        "surname": "Doe",
+        "name_type": "legal",
+        "full_name": "Robert Doe"
+      },
+      "sex": "M",
+      "events": ["E13"],
+      "parents": [
+        {
+          "individual_id": "I1",
+          "relationship_type": "biological",
+          "parent_type": "father"
+        },
+        {
+          "individual_id": "I2",
+          "relationship_type": "biological",
+          "parent_type": "mother"
+        }
+      ],
+      "confidence_level": "high"
+    }
+  },
+  "families": {
+    "F1": {
+      "partners": [
+        {
+          "individual_id": "I1",
+          "role": "spouse"
+        },
+        {
+          "individual_id": "I2",
+          "role": "spouse"
+        }
+      ],
+      "children": [
+        {
+          "individual_id": "I5",
+          "relationship_type": "biological"
+        }
+      ],
+      "family_type": "nuclear",
+      "events": ["E3"]
+    }
+  },
+  "events": {
+    "E1": {
+      "type": "birth",
+      "individual_id": "I1",
+      "date": {
+        "value": "1900-01-01",
+        "date_type": "exact",
+        "original": "1 JAN 1900"
+      },
+      "place": {
+        "place_id": "P1",
+        "original": "New York, New York, USA"
+      },
+      "confidence_level": "high",
+      "sources": ["S1"],
+      "notes": ["N1"]
+    },
+    "E2": {
+      "type": "death",
+      "individual_id": "I1",
+      "date": {
+        "value": "1985-03-15",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P2",
+        "original": "Los Angeles, California, USA"
+      },
+      "confidence_level": "high",
+      "sources": ["S2"]
+    },
+    "E3": {
+      "type": "marriage",
+      "family_id": "F1",
+      "participants": ["I1", "I2"],
+      "date": {
+        "value": "1925-06-10",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P1"
+      },
+      "confidence_level": "high",
+      "sources": ["S4"],
+      "notes": ["M1"]
+    },
+    "E4": {
+      "type": "immigration",
+      "individual_id": "I1",
+      "date": {
+        "value": "1920",
+        "date_type": "approximate",
+        "circa": true,
+        "original": "ABT 1920"
+      },
+      "place": {
+        "place_id": "P3",
+        "original": "Ellis Island, New York, USA"
+      },
+      "details": {
+        "arrival_port": "New York Harbor",
+        "ship_name": "SS Bremen",
+        "from_location": "Bremen, Germany",
+        "manifest_line": "15"
+      },
+      "confidence_level": "high",
+      "sources": ["S5"],
+      "notes": ["N3"]
+    },
+    "E5": {
+      "type": "occupation",
+      "individual_id": "I1",
+      "date": {
+        "value": "1925",
+        "date_type": "from",
+        "end_date": "1960"
+      },
+      "details": {
+        "occupation": "Carpenter",
+        "employer": "Smith Construction Co.",
+        "location": "New York, NY"
+      },
+      "confidence_level": "medium",
+      "sources": ["S1", "S6"]
+    },
+    "E6": {
+      "type": "census",
+      "individual_id": "I1",
+      "date": {
+        "value": "1930-04-01",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P1"
+      },
+      "details": {
+        "census_year": 1930,
+        "dwelling_number": "123",
+        "family_number": "125",
+        "household_members": ["I1", "I2", "I5"]
+      },
+      "confidence_level": "high",
+      "sources": ["S6"]
+    },
+    "E7": {
+      "type": "naturalization",
+      "individual_id": "I1",
+      "date": {
+        "value": "1928-05-15",
+        "date_type": "exact"
+      },
+      "place": {
+        "original": "U.S. District Court, Southern District of New York"
+      },
+      "details": {
+        "certificate_number": "123456",
+        "petition_number": "78901"
+      },
+      "confidence_level": "high",
+      "sources": ["S7"]
+    },
+    "E8": {
+      "type": "birth",
+      "individual_id": "I2",
+      "date": {
+        "value": "1905-03-20",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P1"
+      },
+      "confidence_level": "high",
+      "sources": ["S4"]
+    },
+    "E9": {
+      "type": "death",
+      "individual_id": "I2",
+      "date": {
+        "value": "1990-12-10",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P2"
+      },
+      "confidence_level": "high"
+    },
+    "E10": {
+      "type": "birth",
+      "individual_id": "I3",
+      "date": {
+        "value": "1875",
+        "date_type": "approximate",
+        "circa": true
+      },
+      "place": {
+        "original": "Bremen, Germany"
+      },
+      "confidence_level": "low",
+      "notes": ["N4"]
+    },
+    "E11": {
+      "type": "death",
+      "individual_id": "I3",
+      "date": {
+        "value": "1950-08-22",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P1"
+      },
+      "confidence_level": "medium"
+    },
+    "E12": {
+      "type": "birth",
+      "individual_id": "I4",
+      "date": {
+        "value": "1878",
+        "date_type": "approximate"
+      },
+      "place": {
+        "original": "New York, USA"
+      },
+      "confidence_level": "low"
+    },
+    "E13": {
+      "type": "birth",
+      "individual_id": "I5",
+      "date": {
+        "value": "1930-09-15",
+        "date_type": "exact"
+      },
+      "place": {
+        "place_id": "P1"
+      },
+      "confidence_level": "high"
+    }
+  },
+  "sources": {
+    "S1": {
+      "title": "1900 United States Federal Census",
+      "type": "census",
+      "author": "U.S. Census Bureau",
+      "publication": {
+        "publisher": "National Archives and Records Administration",
+        "year": 1900,
+        "place": "Washington, D.C."
+      },
+      "repository_id": "R1",
+      "citation": "Year: 1900; Census Place: New York, New York, New York; Roll: 1067; Page: 12B; Enumeration District: 0152",
+      "url": "https://www.ancestry.com/imageviewer/collections/7602/images/4123456789",
+      "access_date": "2025-01-15",
+      "quality": "primary",
+      "confidence_level": "high",
+      "media": ["M1"]
+    },
+    "S2": {
+      "title": "Death Certificate for John Doe Jr.",
+      "type": "vital_record",
+      "date": "1985-03-20",
+      "author": "Los Angeles County Registrar-Recorder/County Clerk",
+      "repository_id": "R2",
+      "citation": "California Death Index, 1940-1997; Certificate No. 85-123456",
+      "quality": "primary",
+      "confidence_level": "high"
+    },
+    "S3": {
+      "title": "Doe Family Bible",
+      "type": "personal_record",
+      "date": "1850-1950",
+      "description": "Family Bible with handwritten genealogy records covering three generations of the Doe family",
+      "quality": "secondary",
+      "confidence_level": "medium",
+      "notes": ["N5"]
+    },
+    "S4": {
+      "title": "Marriage Certificate - John Doe and Jane Smith",
+      "type": "vital_record",
+      "date": "1925-06-10",
+      "author": "New York City Clerk",
+      "repository_id": "R3",
+      "citation": "New York, New York City Municipal Archives, Manhattan Marriage Licenses, 1925, Certificate No. 12345",
+      "quality": "primary",
+      "confidence_level": "high",
+      "media": ["M2"]
+    },
+    "S5": {
+      "title": "Ship Manifest - SS Bremen, June 1920",
+      "type": "immigration_record",
+      "date": "1920-06-15",
+      "author": "U.S. Immigration Service",
+      "repository_id": "R1",
+      "citation": "New York Passenger Lists, 1820-1957; Microfilm Serial: T715; Roll: 2938; Line: 15",
+      "url": "https://www.ancestry.com/imageviewer/collections/7488/images/NYT715_2938-0123",
+      "access_date": "2025-01-20",
+      "quality": "primary",
+      "confidence_level": "high",
+      "media": ["M3"]
+    },
+    "S6": {
+      "title": "1930 United States Federal Census",
+      "type": "census",
+      "author": "U.S. Census Bureau",
+      "publication": {
+        "publisher": "National Archives and Records Administration",
+        "year": 1930
+      },
+      "repository_id": "R1",
+      "citation": "Year: 1930; Census Place: New York, New York, New York; Roll: 1567; Page: 8A; Enumeration District: 0321",
+      "quality": "primary",
+      "confidence_level": "high"
+    },
+    "S7": {
+      "title": "Naturalization Certificate for John Doe",
+      "type": "naturalization_record",
+      "date": "1928-05-15",
+      "author": "U.S. District Court, Southern District of New York",
+      "repository_id": "R1",
+      "citation": "Naturalization Records, Southern District of New York, 1824-1991; Certificate No. 123456; Petition No. 78901",
+      "quality": "primary",
+      "confidence_level": "high"
+    }
+  },
+  "repositories": {
+    "R1": {
+      "name": "National Archives and Records Administration",
+      "type": "government_archive",
+      "address": {
+        "street": "8601 Adelphi Road",
+        "city": "College Park",
+        "state": "Maryland",
+        "country": "USA",
+        "postal_code": "20740"
+      },
+      "website": "https://www.archives.gov",
+      "contact": "research@nara.gov"
+    },
+    "R2": {
+      "name": "Los Angeles County Registrar-Recorder/County Clerk",
+      "type": "vital_records_office",
+      "address": {
+        "street": "12400 Imperial Highway",
+        "city": "Norwalk",
+        "state": "California",
+        "country": "USA",
+        "postal_code": "90650"
+      },
+      "website": "https://lavote.gov"
+    },
+    "R3": {
+      "name": "New York City Municipal Archives",
+      "type": "municipal_archive",
+      "address": {
+        "street": "31 Chambers Street",
+        "city": "New York",
+        "state": "New York",
+        "country": "USA",
+        "postal_code": "10007"
+      },
+      "website": "https://www.nyc.gov/records"
+    }
+  },
+  "media": {
+    "M1": {
+      "type": "document",
+      "format": "image/jpeg",
+      "url": "https://example.com/media/census_1900_page12b.jpg",
+      "file_path": "/media/census/1900_ny_p12b.jpg",
+      "title": "1900 Census Record - John Doe",
+      "description": "Scanned census page showing John Doe household in Manhattan",
+      "date": "1900-06-01",
+      "individuals": ["I1"],
+      "events": ["E1"],
+      "source_id": "S1",
+      "repository_id": "R1",
+      "copyright": "Public Domain"
+    },
+    "M2": {
+      "type": "document",
+      "format": "application/pdf",
+      "file_path": "/media/marriage/doe_smith_1925.pdf",
+      "title": "Marriage Certificate - John Doe & Jane Smith",
+      "description": "Official marriage certificate from New York City",
+      "date": "1925-06-10",
+      "individuals": ["I1", "I2"],
+      "events": ["E3"],
+      "source_id": "S4",
+      "copyright": "Public Domain"
+    },
+    "M3": {
+      "type": "document",
+      "format": "image/jpeg",
+      "url": "https://example.com/media/ship_manifest_bremen_1920.jpg",
+      "title": "Ship Manifest - SS Bremen",
+      "description": "Immigration manifest showing Johann Doe arrival",
+      "date": "1920-06-15",
+      "individuals": ["I1"],
+      "events": ["E4"],
+      "source_id": "S5",
+      "repository_id": "R1",
+      "copyright": "Public Domain",
+      "notes": ["Passenger listed as 'Johann Doe', age 20"]
+    }
+  },
+  "places": {
+    "P1": {
+      "name": "New York, New York, USA",
+      "components": {
+        "locality": "New York",
+        "county": "New York County",
+        "state": "New York",
+        "country": "United States",
+        "country_code": "US"
+      },
+      "coordinates": {
+        "latitude": 40.7128,
+        "longitude": -74.0060
+      },
+      "historical_names": ["New Amsterdam"],
+      "time_period": "1664-present"
+    },
+    "P2": {
+      "name": "Los Angeles, California, USA",
+      "components": {
+        "locality": "Los Angeles",
+        "county": "Los Angeles County",
+        "state": "California",
+        "country": "United States",
+        "country_code": "US"
+      },
+      "coordinates": {
+        "latitude": 34.0522,
+        "longitude": -118.2437
+      }
+    },
+    "P3": {
+      "name": "Ellis Island, New York, USA",
+      "components": {
+        "locality": "Ellis Island",
+        "county": "Hudson County",
+        "state": "New Jersey",
+        "country": "United States",
+        "country_code": "US"
+      },
+      "coordinates": {
+        "latitude": 40.6995,
+        "longitude": -74.0395
+      },
+      "historical_names": ["Gibbet Island", "Oyster Island"],
+      "time_period": "1892-1954"
+    }
+  },
+  "notes": {
+    "N1": {
+      "text": "Birth date confirmed through multiple sources including 1900 census and baptism record. Census lists age as 20 in June 1900, consistent with Jan 1 birth.",
+      "author": "Jane Researcher",
+      "date": "2025-01-15T14:30:00Z",
+      "type": "research_note",
+      "related_to": {
+        "individuals": ["I1"],
+        "events": ["E1"],
+        "sources": ["S1"]
+      }
+    },
+    "N2": {
+      "text": "Place of birth listed as 'New York' in census but Family Bible entry says 'Manhattan'. Both refer to same location.",
+      "author": "Jane Researcher",
+      "date": "2025-01-18T10:15:00Z",
+      "type": "conflict_note",
+      "priority": "low",
+      "related_to": {
+        "individuals": ["I1"],
+        "events": ["E1"],
+        "sources": ["S1", "S3"]
+      }
+    },
+    "N3": {
+      "text": "Ship manifest lists passenger as 'Johann Doe' which matches alternate birth name. Name was Americanized to 'John' after immigration.",
+      "author": "Jane Researcher",
+      "date": "2025-01-20T11:00:00Z",
+      "type": "research_note",
+      "related_to": {
+        "individuals": ["I1"],
+        "events": ["E4"],
+        "sources": ["S5"]
+      }
+    },
+    "N4": {
+      "text": "Birth year for William Doe estimated from 1900 census which lists age as 25. No birth record found yet.",
+      "author": "Jane Researcher",
+      "date": "2025-01-18T15:20:00Z",
+      "type": "hypothesis",
+      "priority": "high",
+      "related_to": {
+        "individuals": ["I3"],
+        "events": ["E10"]
+      }
+    },
+    "N5": {
+      "text": "Family Bible entries appear to be in multiple handwritings. Some entries may have been added later from memory. Dates should be verified against primary sources.",
+      "author": "Jane Researcher",
+      "date": "2025-01-15T09:45:00Z",
+      "type": "source_note",
+      "priority": "high",
+      "related_to": {
+        "sources": ["S3"]
+      }
+    }
+  }
+}

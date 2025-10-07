@@ -1,411 +1,607 @@
 #!/usr/bin/env python3
-# GEDCOM to GEN-JSON Converter
-# Converts a GEDCOM file to a GEN-JSON formatted file
-#
-# Usage:
-#   python gedcom-to-genjson.py input.ged output.json [options]
-#
-# Options:
-#   -v, --verbose       Enable verbose output
-#   --no-validate       Skip validation of the output
-#   --compact           Output compact JSON (no indentation)
-#   --pretty            Output pretty-printed JSON (default)
-#   --indent N          Number of spaces for indentation (default: 2)
-#   --skip-empty        Skip empty fields in the output
-#
-# Examples:
-#   python gedcom-to-genjson.py family.ged family.json
-#   python gedcom-to-genjson.py family.ged family.json --verbose
-#   python gedcom-to-genjson.py family.ged family.json --compact
-#   python gedcom-to-genjson.py family.ged family.json --skip-empty
-#
-# This script parses GEDCOM files and converts them to the GEN-JSON format.
-# It handles individuals, families, relationships, events, sources, and media.
-# The output is a JSON file that conforms to the GEN-JSON schema.
+"""
+GEDCOM to GEN-JSON Converter
+Converts a GEDCOM file to a GEN-JSON formatted file
+
+Usage:
+  python gedcom-to-genjson.py input.ged output.json [options]
+
+Options:
+  -v, --verbose       Enable verbose output
+  --no-validate       Skip validation of the output
+  --compact           Output compact JSON (no indentation)
+  --pretty            Output pretty-printed JSON (default)
+  --indent N          Number of spaces for indentation (default: 2)
+  --skip-empty        Skip empty fields in the output
+  --encoding          Input file encoding (default: utf-8-sig)
+
+Examples:
+  python gedcom-to-genjson.py family.ged family.json
+  python gedcom-to-genjson.py family.ged family.json --verbose
+  python gedcom-to-genjson.py family.ged family.json --compact
+  python gedcom-to-genjson.py family.ged family.json --skip-empty
+"""
 
 import json
 import sys
 import os
 import re
 import argparse
-from typing import Dict, List, Any, Optional, Tuple
+import logging
+from typing import Dict, List, Any, Optional, Tuple, Set
 from datetime import datetime
+from dataclasses import dataclass, field
+from collections import defaultdict
 
-def parse_gedcom_date(date_str: str) -> Optional[str]:
-    """
-    Parse GEDCOM date format to ISO 8601 format (YYYY-MM-DD).
-    Returns None if the date cannot be parsed.
-    """
-    if not date_str:
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Individual:
+    """Represents an individual in the genealogy."""
+    id: str
+    full_name: str = ""
+    sex: str = "U"
+    birth: Dict[str, str] = field(default_factory=dict)
+    death: Dict[str, str] = field(default_factory=dict)
+    parents: List[str] = field(default_factory=list)
+    spouses: List[str] = field(default_factory=list)
+    children: List[str] = field(default_factory=list)
+    sources: List[str] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+    def to_dict(self, skip_empty: bool = False) -> Dict[str, Any]:
+        """Convert to dictionary, optionally skipping empty fields."""
+        result = {
+            "full_name": self.full_name,
+            "sex": self.sex
+        }
+
+        if not skip_empty or self.birth:
+            result["birth"] = self.birth
+        if not skip_empty or self.death:
+            result["death"] = self.death
+        if not skip_empty or self.parents:
+            result["parents"] = self.parents
+        if not skip_empty or self.spouses:
+            result["spouses"] = self.spouses
+        if not skip_empty or self.children:
+            result["children"] = self.children
+        if not skip_empty or self.sources:
+            result["sources"] = self.sources
+        if not skip_empty or self.notes:
+            result["notes"] = self.notes
+
+        return result
+
+
+@dataclass
+class Family:
+    """Represents a family unit in the genealogy."""
+    id: str
+    husband: str = ""
+    wife: str = ""
+    marriage: Dict[str, str] = field(default_factory=dict)
+    children: List[str] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+    def to_dict(self, skip_empty: bool = False) -> Dict[str, Any]:
+        """Convert to dictionary, optionally skipping empty fields."""
+        result = {}
+
+        if not skip_empty or self.husband:
+            result["husband"] = self.husband
+        if not skip_empty or self.wife:
+            result["wife"] = self.wife
+        if not skip_empty or self.marriage:
+            result["marriage"] = self.marriage
+        if not skip_empty or self.children:
+            result["children"] = self.children
+        if not skip_empty or self.notes:
+            result["notes"] = self.notes
+
+        return result
+
+
+class GedcomParser:
+    """Parser for GEDCOM files."""
+
+    # Month abbreviations to numbers
+    MONTH_MAP = {
+        'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
+        'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
+        'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
+    }
+
+    # Date qualifiers to remove
+    DATE_QUALIFIERS = ['ABT', 'EST', 'BEF', 'AFT', 'CAL', 'FROM', 'TO', 'BET', 'AND']
+
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+        self.individuals: Dict[str, Individual] = {}
+        self.families: Dict[str, Family] = {}
+        self.sources: Dict[str, Dict[str, str]] = {}
+        self.media: Dict[str, Dict[str, str]] = {}
+        self.notes: Dict[str, str] = {}
+
+    def parse_date(self, date_str: str) -> Optional[str]:
+        """
+        Parse GEDCOM date format to ISO 8601 format (YYYY-MM-DD).
+
+        Args:
+            date_str: GEDCOM date string
+
+        Returns:
+            ISO formatted date string or None
+        """
+        if not date_str:
+            return None
+
+        # Remove date qualifiers
+        cleaned_date = date_str.strip()
+        for qualifier in self.DATE_QUALIFIERS:
+            cleaned_date = re.sub(rf'^{qualifier}\s+', '', cleaned_date, flags=re.IGNORECASE)
+
+        # Remove any parenthetical information
+        cleaned_date = re.sub(r'\([^)]*\)', '', cleaned_date).strip()
+
+        # Try various date patterns
+        patterns = [
+            # DD MMM YYYY
+            (r'(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})', lambda m: f"{m[3]}-{self.MONTH_MAP.get(m[2][:3].upper(), '01')}-{m[1].zfill(2)}"),
+            # MMM DD, YYYY
+            (r'([A-Za-z]{3,})\s+(\d{1,2}),?\s+(\d{4})', lambda m: f"{m[3]}-{self.MONTH_MAP.get(m[1][:3].upper(), '01')}-{m[2].zfill(2)}"),
+            # MMM YYYY
+            (r'([A-Za-z]{3,})\s+(\d{4})', lambda m: f"{m[2]}-{self.MONTH_MAP.get(m[1][:3].upper(), '01')}-01"),
+            # YYYY-MM-DD (already in ISO format)
+            (r'(\d{4})-(\d{2})-(\d{2})', lambda m: f"{m[1]}-{m[2]}-{m[3]}"),
+            # DD/MM/YYYY or DD-MM-YYYY
+            (r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})', lambda m: f"{m[3]}-{m[2].zfill(2)}-{m[1].zfill(2)}"),
+            # YYYY only
+            (r'^(\d{4})$', lambda m: f"{m[1]}-01-01")
+        ]
+
+        for pattern, formatter in patterns:
+            match = re.search(pattern, cleaned_date)
+            if match:
+                try:
+                    return formatter(match.groups())
+                except (KeyError, IndexError):
+                    continue
+
+        if self.verbose:
+            logger.warning(f"Could not parse date: {date_str}")
         return None
 
-    # Remove any "ABT", "EST", "BEF", "AFT" prefixes
-    date_str = re.sub(r'^(ABT|EST|BEF|AFT)\s+', '', date_str.strip())
+    def parse_line(self, line: str) -> Tuple[int, str, Optional[str], Optional[str]]:
+        """
+        Parse a GEDCOM line into its components.
 
-    # Try to parse common date formats
-    formats = [
-        # DD MMM YYYY
-        r'(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})',
-        # MMM YYYY
-        r'([A-Za-z]{3})\s+(\d{4})',
-        # YYYY
-        r'(\d{4})'
-    ]
+        Args:
+            line: Raw GEDCOM line
 
-    month_map = {
-        'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04', 'MAY': '05', 'JUN': '06',
-        'JUL': '07', 'AUG': '08', 'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
-    }
+        Returns:
+            Tuple of (level, xref_id, tag, value)
+        """
+        line = line.strip()
+        if not line:
+            return -1, "", None, None
 
-    for fmt in formats:
-        match = re.search(fmt, date_str)
-        if match:
-            groups = match.groups()
-            if len(groups) == 3:  # DD MMM YYYY
-                day, month, year = groups
-                month = month_map.get(month.upper(), '01')
-                return f"{year}-{month}-{day.zfill(2)}"
-            elif len(groups) == 2:  # MMM YYYY
-                month, year = groups
-                month = month_map.get(month.upper(), '01')
-                return f"{year}-{month}-01"
-            elif len(groups) == 1:  # YYYY
-                year = groups[0]
-                return f"{year}-01-01"
-
-    return None
-
-def parse_gedcom(file_path: str) -> Dict[str, Any]:
-    """
-    Parse a GEDCOM file and convert it to GEN-JSON format.
-
-    Args:
-        file_path: Path to the GEDCOM file
-
-    Returns:
-        Dictionary containing the GEN-JSON data
-    """
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error reading file: {e}")
-        sys.exit(1)
-
-    individuals: Dict[str, Dict[str, Any]] = {}
-    families: Dict[str, Dict[str, Any]] = {}
-    sources: Dict[str, Dict[str, Any]] = {}
-    media: Dict[str, Dict[str, Any]] = {}
-
-    current_id: Optional[str] = None
-    current_type: Optional[str] = None  # 'INDI', 'FAM', 'SOUR', etc.
-    current_event: Optional[str] = None  # 'BIRT', 'DEAT', 'MARR', etc.
-
-    # First pass: Create all individuals and families
-    for line in lines:
-        parts = line.strip().split(' ', 2)
+        parts = line.split(' ', 2)
         if len(parts) < 2:
-            continue
+            return -1, "", None, None
 
-        level = parts[0]
-        tag = parts[1]
-        value = parts[2] if len(parts) > 2 else ""
+        level = int(parts[0])
 
-        # Handle special case for INDI, FAM, SOUR records
-        if level == '0' and value.startswith('@') and value.endswith('@'):
-            record_id = value.strip('@')
-            record_type = tag
+        # Check if this is a record with XREF ID (e.g., "0 @I1@ INDI")
+        if parts[1].startswith('@') and parts[1].endswith('@'):
+            xref_id = parts[1][1:-1]  # Remove @ symbols
+            tag = parts[2] if len(parts) > 2 else None
+            value = None
+        else:
+            xref_id = ""
+            tag = parts[1]
+            value = parts[2] if len(parts) > 2 else ""
 
-            if record_type == 'INDI':
-                current_id = record_id
-                current_type = 'INDI'
-                individuals[current_id] = {
-                    "full_name": "",
-                    "sex": "U",  # Default to Unknown
-                    "birth": {},
-                    "death": {},
-                    "parents": [],
-                    "spouses": [],
-                    "children": [],
-                    "sources": [],
-                    "notes": []
-                }
-            elif record_type == 'FAM':
-                current_id = record_id
-                current_type = 'FAM'
-                families[current_id] = {
-                    "husband": "",
-                    "wife": "",
-                    "marriage": {},
-                    "children": [],
-                    "notes": []
-                }
-            elif record_type == 'SOUR':
-                current_id = record_id
-                current_type = 'SOUR'
-                sources[current_id] = {
-                    "title": "",
-                    "description": ""
-                }
-            else:
-                current_id = None
-                current_type = None
+        return level, xref_id, tag, value
 
-        # Process individual records
-        elif current_type == 'INDI' and current_id:
-            if level == '1':
-                if tag == 'NAME':
-                    individuals[current_id]['full_name'] = value.replace('/', '').strip()
-                elif tag == 'SEX':
-                    individuals[current_id]['sex'] = value.strip()
-                elif tag == 'BIRT':
-                    current_event = 'BIRT'
-                elif tag == 'DEAT':
-                    current_event = 'DEAT'
-                elif tag == 'FAMS':
-                    spouse_id = value.strip('@')
-                    if spouse_id not in individuals[current_id]['spouses']:
-                        individuals[current_id]['spouses'].append(spouse_id)
-                elif tag == 'FAMC':
-                    family_id = value.strip('@')
-                    # We'll process parent-child relationships in a second pass
-                elif tag == 'NOTE':
-                    # Handle notes for individuals
-                    if value:
-                        individuals[current_id]['notes'].append(value)
+    def parse_file(self, file_path: str, encoding: str = 'utf-8-sig') -> Dict[str, Any]:
+        """
+        Parse a GEDCOM file and convert it to GEN-JSON format.
 
-            elif level == '2' and current_event:
-                if tag == 'DATE':
-                    date = parse_gedcom_date(value)
-                    if date:
-                        if current_event == 'BIRT':
-                            individuals[current_id]['birth']['date'] = date
-                        elif current_event == 'DEAT':
-                            individuals[current_id]['death']['date'] = date
-                elif tag == 'PLAC':
+        Args:
+            file_path: Path to the GEDCOM file
+            encoding: File encoding (default: utf-8-sig to handle BOM)
+
+        Returns:
+            Dictionary containing the GEN-JSON data
+        """
+        try:
+            with open(file_path, 'r', encoding=encoding) as f:
+                self._parse_lines(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File '{file_path}' not found.")
+        except UnicodeDecodeError:
+            # Try with different encoding
+            try:
+                with open(file_path, 'r', encoding='latin-1') as f:
+                    self._parse_lines(f)
+            except Exception as e:
+                raise Exception(f"Error reading file with encoding issues: {e}")
+
+        # Post-process relationships
+        self._process_relationships()
+
+        return self._build_output()
+
+    def _parse_lines(self, file_handle):
+        """Parse lines from the file handle."""
+        current_record = None
+        current_record_type = None
+        current_event = None
+        current_note_id = None
+
+        for line_num, line in enumerate(file_handle, 1):
+            try:
+                level, xref_id, tag, value = self.parse_line(line)
+
+                if level == -1:
+                    continue
+
+                # Handle level 0 records
+                if level == 0:
+                    current_event = None
+
+                    if xref_id:
+                        if tag == 'INDI':
+                            current_record = Individual(id=xref_id)
+                            current_record_type = 'INDI'
+                            self.individuals[xref_id] = current_record
+                        elif tag == 'FAM':
+                            current_record = Family(id=xref_id)
+                            current_record_type = 'FAM'
+                            self.families[xref_id] = current_record
+                        elif tag == 'SOUR':
+                            current_record = {'title': '', 'description': ''}
+                            current_record_type = 'SOUR'
+                            self.sources[xref_id] = current_record
+                        elif tag == 'NOTE':
+                            current_note_id = xref_id
+                            self.notes[xref_id] = value or ""
+                            current_record_type = 'NOTE'
+                        else:
+                            current_record = None
+                            current_record_type = None
+                    else:
+                        current_record = None
+                        current_record_type = None
+
+                # Handle subordinate levels
+                elif current_record_type == 'INDI' and isinstance(current_record, Individual):
+                    self._parse_individual_tag(level, tag, value, current_record, current_event)
+                    if tag in ['BIRT', 'DEAT', 'BAPM', 'CHR', 'BURI']:
+                        current_event = tag
+
+                elif current_record_type == 'FAM' and isinstance(current_record, Family):
+                    self._parse_family_tag(level, tag, value, current_record, current_event)
+                    if tag == 'MARR':
+                        current_event = tag
+
+                elif current_record_type == 'SOUR' and isinstance(current_record, dict):
+                    if level == 1:
+                        if tag == 'TITL':
+                            current_record['title'] = value
+                        elif tag == 'TEXT':
+                            current_record['description'] = value
+
+                elif current_record_type == 'NOTE' and current_note_id:
+                    if level == 1 and tag == 'CONT':
+                        self.notes[current_note_id] += '\n' + value
+
+            except Exception as e:
+                logger.warning(f"Error parsing line {line_num}: {line.strip()} - {e}")
+
+    def _parse_individual_tag(self, level: int, tag: str, value: str, individual: Individual, current_event: Optional[str]):
+        """Parse tags for an individual record."""
+        if level == 1:
+            if tag == 'NAME':
+                # Remove slashes used to denote surnames
+                individual.full_name = value.replace('/', '').strip()
+            elif tag == 'SEX':
+                individual.sex = value.strip() if value.strip() in ['M', 'F'] else 'U'
+            elif tag == 'FAMS':
+                spouse_fam_id = value.strip('@')
+                if spouse_fam_id not in individual.spouses:
+                    individual.spouses.append(spouse_fam_id)
+            elif tag == 'FAMC':
+                # This will be processed in relationship processing
+                pass
+            elif tag == 'NOTE':
+                if value.startswith('@'):
+                    # Reference to a NOTE record
+                    note_id = value.strip('@')
+                    if note_id in self.notes:
+                        individual.notes.append(self.notes[note_id])
+                else:
+                    individual.notes.append(value)
+            elif tag == 'SOUR':
+                if value.startswith('@'):
+                    source_id = value.strip('@')
+                    individual.sources.append(source_id)
+
+        elif level == 2 and current_event:
+            if tag == 'DATE':
+                date = self.parse_date(value)
+                if date:
                     if current_event == 'BIRT':
-                        individuals[current_id]['birth']['place'] = value
+                        individual.birth['date'] = date
                     elif current_event == 'DEAT':
-                        individuals[current_id]['death']['place'] = value
+                        individual.death['date'] = date
+            elif tag == 'PLAC':
+                if current_event == 'BIRT':
+                    individual.birth['place'] = value
+                elif current_event == 'DEAT':
+                    individual.death['place'] = value
 
-        # Process family records
-        elif current_type == 'FAM' and current_id:
-            if level == '1':
-                if tag == 'HUSB':
-                    husband_id = value.strip('@')
-                    families[current_id]['husband'] = husband_id
-                elif tag == 'WIFE':
-                    wife_id = value.strip('@')
-                    families[current_id]['wife'] = wife_id
-                elif tag == 'CHIL':
-                    child_id = value.strip('@')
-                    if child_id not in families[current_id]['children']:
-                        families[current_id]['children'].append(child_id)
-                elif tag == 'MARR':
-                    current_event = 'MARR'
-                elif tag == 'NOTE':
-                    # Handle notes for families
-                    if value:
-                        families[current_id]['notes'].append(value)
+    def _parse_family_tag(self, level: int, tag: str, value: str, family: Family, current_event: Optional[str]):
+        """Parse tags for a family record."""
+        if level == 1:
+            if tag == 'HUSB':
+                family.husband = value.strip('@')
+            elif tag == 'WIFE':
+                family.wife = value.strip('@')
+            elif tag == 'CHIL':
+                child_id = value.strip('@')
+                if child_id not in family.children:
+                    family.children.append(child_id)
+            elif tag == 'NOTE':
+                if value.startswith('@'):
+                    note_id = value.strip('@')
+                    if note_id in self.notes:
+                        family.notes.append(self.notes[note_id])
+                else:
+                    family.notes.append(value)
 
-            elif level == '2' and current_event == 'MARR':
-                if tag == 'DATE':
-                    date = parse_gedcom_date(value)
-                    if date:
-                        families[current_id]['marriage']['date'] = date
-                elif tag == 'PLAC':
-                    families[current_id]['marriage']['place'] = value
+        elif level == 2 and current_event == 'MARR':
+            if tag == 'DATE':
+                date = self.parse_date(value)
+                if date:
+                    family.marriage['date'] = date
+            elif tag == 'PLAC':
+                family.marriage['place'] = value
 
-        # Process source records
-        elif current_type == 'SOUR' and current_id:
-            if level == '1':
-                if tag == 'TITL':
-                    sources[current_id]['title'] = value
-                elif tag == 'TEXT':
-                    sources[current_id]['description'] = value
+    def _process_relationships(self):
+        """Process family relationships to update individual records."""
+        # First, process parent-child relationships
+        for family_id, family in self.families.items():
+            husband_id = family.husband
+            wife_id = family.wife
 
-    # Second pass: Process relationships
-    for family_id, family in families.items():
-        # Add children to parents
-        husband_id = family.get('husband')
-        wife_id = family.get('wife')
+            # Add children to parents and parents to children
+            for child_id in family.children:
+                if child_id in self.individuals:
+                    child = self.individuals[child_id]
 
-        for child_id in family.get('children', []):
-            if child_id in individuals:
-                # Add parents to child
-                if husband_id and husband_id in individuals:
-                    if husband_id not in individuals[child_id]['parents']:
-                        individuals[child_id]['parents'].append(husband_id)
+                    # Add parents to child
+                    if husband_id and husband_id in self.individuals:
+                        if husband_id not in child.parents:
+                            child.parents.append(husband_id)
+                        # Add child to father
+                        if child_id not in self.individuals[husband_id].children:
+                            self.individuals[husband_id].children.append(child_id)
 
-                if wife_id and wife_id in individuals:
-                    if wife_id not in individuals[child_id]['parents']:
-                        individuals[child_id]['parents'].append(wife_id)
+                    if wife_id and wife_id in self.individuals:
+                        if wife_id not in child.parents:
+                            child.parents.append(wife_id)
+                        # Add child to mother
+                        if child_id not in self.individuals[wife_id].children:
+                            self.individuals[wife_id].children.append(child_id)
 
-                # Add child to parents
-                if husband_id and husband_id in individuals:
-                    if child_id not in individuals[husband_id]['children']:
-                        individuals[husband_id]['children'].append(child_id)
+        # Update spouse relationships from family records
+        for family_id, family in self.families.items():
+            if family.husband and family.wife:
+                # Replace family ID with actual spouse ID
+                if family.husband in self.individuals:
+                    husband = self.individuals[family.husband]
+                    # Remove family ID and add spouse ID
+                    if family_id in husband.spouses:
+                        husband.spouses.remove(family_id)
+                    if family.wife and family.wife not in husband.spouses:
+                        husband.spouses.append(family.wife)
 
-                if wife_id and wife_id in individuals:
-                    if child_id not in individuals[wife_id]['children']:
-                        individuals[wife_id]['children'].append(child_id)
+                if family.wife in self.individuals:
+                    wife = self.individuals[family.wife]
+                    # Remove family ID and add spouse ID
+                    if family_id in wife.spouses:
+                        wife.spouses.remove(family_id)
+                    if family.husband and family.husband not in wife.spouses:
+                        wife.spouses.append(family.husband)
 
-        # Add spouses to each other
-        if husband_id and wife_id:
-            if husband_id in individuals and wife_id in individuals:
-                if wife_id not in individuals[husband_id]['spouses']:
-                    individuals[husband_id]['spouses'].append(wife_id)
-                if husband_id not in individuals[wife_id]['spouses']:
-                    individuals[wife_id]['spouses'].append(husband_id)
+    def _build_output(self) -> Dict[str, Any]:
+        """Build the final GEN-JSON output."""
+        output = {
+            "version": "1.0",
+            "individuals": {},
+            "families": {}
+        }
 
-    # Clean up empty objects
-    for individual_id, individual in individuals.items():
-        if not individual['birth']:
-            individual['birth'] = {}
-        if not individual['death']:
-            individual['death'] = {}
+        # Convert individuals
+        for ind_id, individual in self.individuals.items():
+            output["individuals"][ind_id] = individual.to_dict()
 
-    gen_json = {
-        "version": "1.0",
-        "individuals": individuals,
-        "families": families
-    }
+        # Convert families
+        for fam_id, family in self.families.items():
+            output["families"][fam_id] = family.to_dict()
 
-    # Only include sources and media if they have entries
-    if sources:
-        gen_json["sources"] = sources
-    if media:
-        gen_json["media"] = media
+        # Add sources if present
+        if self.sources:
+            output["sources"] = self.sources
 
-    return gen_json
+        # Add media if present
+        if self.media:
+            output["media"] = self.media
 
-def validate_output(gen_json: Dict[str, Any]) -> bool:
+        return output
+
+
+def validate_gen_json(data: Dict[str, Any]) -> List[str]:
     """
-    Basic validation of the GEN-JSON output.
+    Validate GEN-JSON data against the schema requirements.
 
     Args:
-        gen_json: The GEN-JSON data to validate
+        data: The GEN-JSON data to validate
 
     Returns:
-        True if valid, False otherwise
+        List of validation errors (empty if valid)
     """
-    # Check required fields
-    if "version" not in gen_json or "individuals" not in gen_json:
-        return False
+    errors = []
 
-    # Check individuals format
-    for individual_id, individual in gen_json["individuals"].items():
-        if "full_name" not in individual or "sex" not in individual:
-            return False
+    # Check required top-level fields
+    if "version" not in data:
+        errors.append("Missing required field: version")
+    if "individuals" not in data:
+        errors.append("Missing required field: individuals")
 
-    return True
+    # Validate individuals
+    if "individuals" in data:
+        for ind_id, individual in data["individuals"].items():
+            if "full_name" not in individual:
+                errors.append(f"Individual {ind_id}: missing required field 'full_name'")
+            if "sex" not in individual:
+                errors.append(f"Individual {ind_id}: missing required field 'sex'")
+            elif individual["sex"] not in ["M", "F", "U"]:
+                errors.append(f"Individual {ind_id}: invalid sex value '{individual['sex']}'")
+
+            # Validate dates if present
+            for event in ["birth", "death"]:
+                if event in individual and "date" in individual[event]:
+                    date_str = individual[event]["date"]
+                    try:
+                        datetime.strptime(date_str, "%Y-%m-%d")
+                    except ValueError:
+                        errors.append(f"Individual {ind_id}: invalid {event} date format '{date_str}'")
+
+    # Validate relationships
+    all_individual_ids = set(data.get("individuals", {}).keys())
+
+    for ind_id, individual in data.get("individuals", {}).items():
+        # Check parent references
+        for parent_id in individual.get("parents", []):
+            if parent_id not in all_individual_ids:
+                errors.append(f"Individual {ind_id}: parent '{parent_id}' not found")
+
+        # Check spouse references
+        for spouse_id in individual.get("spouses", []):
+            if spouse_id not in all_individual_ids:
+                errors.append(f"Individual {ind_id}: spouse '{spouse_id}' not found")
+
+        # Check children references
+        for child_id in individual.get("children", []):
+            if child_id not in all_individual_ids:
+                errors.append(f"Individual {ind_id}: child '{child_id}' not found")
+
+    return errors
+
 
 def main():
     """Main function to run the converter."""
-    parser = argparse.ArgumentParser(description='Convert GEDCOM files to GEN-JSON format.')
+    parser = argparse.ArgumentParser(
+        description='Convert GEDCOM files to GEN-JSON format.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+
     parser.add_argument('input_file', help='Path to the input GEDCOM file')
     parser.add_argument('output_file', help='Path to the output GEN-JSON file')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
     parser.add_argument('--no-validate', action='store_true', help='Skip validation of the output')
     parser.add_argument('--compact', action='store_true', help='Output compact JSON (no indentation)')
-    parser.add_argument('--pretty', action='store_true', help='Output pretty-printed JSON (default)')
     parser.add_argument('--indent', type=int, default=2, help='Number of spaces for indentation (default: 2)')
     parser.add_argument('--skip-empty', action='store_true', help='Skip empty fields in the output')
+    parser.add_argument('--encoding', default='utf-8-sig', help='Input file encoding (default: utf-8-sig)')
 
     args = parser.parse_args()
 
+    # Set logging level
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.WARNING)
+
+    # Check input file exists
     if not os.path.exists(args.input_file):
-        print(f"Error: Input file '{args.input_file}' not found.")
+        logger.error(f"Input file '{args.input_file}' not found.")
         sys.exit(1)
 
     try:
-        if args.verbose:
-            print(f"Parsing GEDCOM file: {args.input_file}")
+        # Parse GEDCOM file
+        logger.info(f"Parsing GEDCOM file: {args.input_file}")
+        parser_instance = GedcomParser(verbose=args.verbose)
+        gen_json_data = parser_instance.parse_file(args.input_file, encoding=args.encoding)
 
-        gen_json_data = parse_gedcom(args.input_file)
-
-        # Remove empty fields if requested
+        # Apply skip-empty if requested
         if args.skip_empty:
-            # Clean up individuals
-            for individual_id, individual in list(gen_json_data['individuals'].items()):
-                if not individual['birth']:
-                    del individual['birth']
-                if not individual['death']:
-                    del individual['death']
-                if not individual['parents']:
-                    del individual['parents']
-                if not individual['spouses']:
-                    del individual['spouses']
-                if not individual['children']:
-                    del individual['children']
-                if not individual['sources']:
-                    del individual['sources']
-                if not individual['notes']:
-                    del individual['notes']
+            # Rebuild with skip_empty flag
+            for ind_id, individual in parser_instance.individuals.items():
+                gen_json_data["individuals"][ind_id] = individual.to_dict(skip_empty=True)
+            for fam_id, family in parser_instance.families.items():
+                gen_json_data["families"][fam_id] = family.to_dict(skip_empty=True)
 
-            # Clean up families
-            if 'families' in gen_json_data:
-                for family_id, family in list(gen_json_data['families'].items()):
-                    if not family['marriage']:
-                        del family['marriage']
-                    if not family['children']:
-                        del family['children']
-                    if not family['notes']:
-                        del family['notes']
-                    if not family['husband']:
-                        del family['husband']
-                    if not family['wife']:
-                        del family['wife']
+            # Remove empty top-level sections
+            if not gen_json_data.get("families"):
+                gen_json_data.pop("families", None)
+            if not gen_json_data.get("sources"):
+                gen_json_data.pop("sources", None)
+            if not gen_json_data.get("media"):
+                gen_json_data.pop("media", None)
 
         # Validate output
         if not args.no_validate:
-            if args.verbose:
-                print("Validating output...")
+            logger.info("Validating output...")
+            validation_errors = validate_gen_json(gen_json_data)
 
-            if not validate_output(gen_json_data):
-                print("Warning: Generated GEN-JSON may not be valid.")
-
-        # Determine indentation
-        indent = None
-        if not args.compact:
-            indent = args.indent
+            if validation_errors:
+                logger.warning("Validation errors found:")
+                for error in validation_errors:
+                    logger.warning(f"  - {error}")
+            else:
+                logger.info("Validation passed!")
 
         # Write output
+        indent = None if args.compact else args.indent
+
         with open(args.output_file, 'w', encoding='utf-8') as f:
-            json.dump(gen_json_data, f, indent=indent)
+            json.dump(gen_json_data, f, indent=indent, ensure_ascii=False)
 
         # Print summary
-        print(f"Conversion complete! Saved to {args.output_file}")
-        stats = [
-            f"{len(gen_json_data['individuals'])} individuals",
-            f"{len(gen_json_data.get('families', {}))} families"
-        ]
+        print(f"\n✓ Conversion complete! Saved to {args.output_file}")
+
+        stats = []
+        stats.append(f"{len(gen_json_data.get('individuals', {}))} individuals")
+        stats.append(f"{len(gen_json_data.get('families', {}))} families")
 
         if 'sources' in gen_json_data:
             stats.append(f"{len(gen_json_data['sources'])} sources")
-
         if 'media' in gen_json_data:
             stats.append(f"{len(gen_json_data['media'])} media items")
 
-        print(f"Converted {', '.join(stats)}.")
+        print(f"  Converted: {', '.join(stats)}")
 
-        if args.verbose:
-            print("\nSample of converted data:")
-            # Print a sample of the first individual
-            if gen_json_data['individuals']:
-                first_id = next(iter(gen_json_data['individuals']))
-                print(f"Individual {first_id}:")
-                print(json.dumps(gen_json_data['individuals'][first_id], indent=2))
+        # Show sample if verbose
+        if args.verbose and gen_json_data.get('individuals'):
+            print("\nSample individual:")
+            first_id = next(iter(gen_json_data['individuals']))
+            print(json.dumps({first_id: gen_json_data['individuals'][first_id]}, indent=2))
 
     except Exception as e:
-        print(f"Error during conversion: {e}")
+        logger.error(f"Error during conversion: {e}")
         if args.verbose:
             import traceback
             traceback.print_exc()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
